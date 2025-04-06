@@ -1,2 +1,5 @@
 .env
 stock-sage-ai
+.vscode
+__pycache__
+.DS_Store
