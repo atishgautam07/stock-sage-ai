@@ -1,0 +1,19 @@
+# Core libraries
+langchain
+langchain-community
+langchain-openai
+langgraph
+openai
+tavily-python
+yfinance
+fastapi
+uvicorn
+beautifulsoup4
+requests
+pydantic
+python-dotenv
+streamlit
+pandas
+numpy
+google-cloud-storage
+google-cloud-logging
