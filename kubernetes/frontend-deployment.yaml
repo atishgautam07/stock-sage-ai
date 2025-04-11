@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stock-sage-frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: stock-sage-frontend
+  template:
+    metadata:
+      labels:
+        app: stock-sage-frontend
+    spec:
+      containers:
+      - name: frontend
+        image: asia-south1-docker.pkg.dev/stock-analysis-agent-456018/stock-analysis-agent/frontend:v1
+        env:
+        - name: BACKEND_API_URL
+          value: "http://stock-sage-backend:8080"
+        ports:
+        - containerPort: 8501
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stock-sage-frontend
+spec:
+  selector:
+    app: stock-sage-frontend
+  ports:
+  - port: 80
+    targetPort: 8501
+  type: LoadBalancer

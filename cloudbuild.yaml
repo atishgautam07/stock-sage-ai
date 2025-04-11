@@ -1,0 +1,57 @@
+steps:
+  # Build the backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/backend:$COMMIT_SHA', '-f', 'backend/Dockerfile', '.']
+
+  # Build the frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/frontend:$COMMIT_SHA', '-f', 'frontend/Dockerfile', '.']
+
+  # Push the backend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/backend:$COMMIT_SHA']
+
+  # Push the frontend image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/frontend:$COMMIT_SHA']
+
+  # Tag the images as latest
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['tag', 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/backend:$COMMIT_SHA', 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/backend:latest']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['tag', 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/frontend:$COMMIT_SHA', 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/frontend:latest']
+
+  # Push the latest tags
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/backend:latest']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/frontend:latest']
+
+  # Update Kubernetes deployment
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/stock-sage-backend'
+      - 'backend=asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/backend:$COMMIT_SHA'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=asia-south1'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=stock-sage-ai-cluster'
+
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args:
+      - 'set'
+      - 'image'
+      - 'deployment/stock-sage-frontend'
+      - 'frontend=asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/frontend:$COMMIT_SHA'
+    env:
+      - 'CLOUDSDK_COMPUTE_ZONE=asia-south1-a'
+      - 'CLOUDSDK_CONTAINER_CLUSTER=stock-sage-ai-cluster'
+
+images:
+  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/backend:$COMMIT_SHA'
+  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/backend:latest'
+  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/frontend:$COMMIT_SHA'
+  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/frontend:latest'

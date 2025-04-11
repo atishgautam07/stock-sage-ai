@@ -6,10 +6,19 @@ import sys
 import os
 import time
 import json
+import requests
+
 
 # Add project directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from graph.workflow import analyze_stock
+# from backend.graph.workflow import analyze_stock
+
+# Helper function to get value from either a dictionary or an object
+def get_value(obj, key, default=None):
+    """Get a value from an object regardless of whether it's a dict or an object with attributes"""
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
 
 def create_streamlit_app():
     st.set_page_config(
@@ -43,6 +52,31 @@ def create_streamlit_app():
     if "current_analysis" not in st.session_state:
         st.session_state.current_analysis = None
     
+    # Function to call the backend API
+    def call_stock_analysis_api(ticker, company_name):
+        """Call the backend API to analyze a stock"""
+        try:
+            # Get backend URL from environment variable or use localhost for development
+            api_url = os.getenv("BACKEND_API_URL", "http://localhost:8080")
+            
+            st.info(f"Calling API at {api_url} for stock analysis...")
+            
+            response = requests.post(
+                f"{api_url}/analyze",
+                json={"ticker": ticker, "company_name": company_name},
+                timeout=180  # Longer timeout since analysis takes time
+            )
+            
+            # Check if the request was successful
+            response.raise_for_status()
+            
+            # Return the JSON response
+            return response.json()
+            
+        except requests.exceptions.RequestException as e:
+            st.error(f"API Error: {str(e)}")
+            return {"error": str(e)}
+        
     # Function to add a stock
     def add_stock():
         st.session_state.stocks.append({"ticker": "", "company_name": ""})
@@ -128,7 +162,8 @@ def create_streamlit_app():
                     process_status.write("Step 1: Researching stock information...")
                     
                     # Start the analysis
-                    result = analyze_stock(ticker, company_name)
+                    # result = analyze_stock(ticker, company_name)
+                    result = call_stock_analysis_api(ticker, company_name)
                     
                     if "error" in result and result["error"]:
                         st.error(f"Error analyzing {ticker}: {result['error']}")
@@ -170,16 +205,27 @@ def create_streamlit_app():
                     col1, col2 = st.columns([1, 2])
                     
                     with col1:
-                        # Score card
-                        st.subheader(f"{ticker} - {score.overall_score}/100")
-                        st.write(f"**Recommendation:** {score.investment_recommendation}")
-                        st.write(f"**Confidence:** {score.confidence_level}")
+                        # Score card - using the get_value helper function
+                        overall_score = get_value(score, "overall_score", 0)
+                        investment_recommendation = get_value(score, "investment_recommendation", "N/A")
+                        confidence_level = get_value(score, "confidence_level", "N/A")
+                        
+                        st.subheader(f"{ticker} - {overall_score}/100")
+                        st.write(f"**Recommendation:** {investment_recommendation}")
+                        st.write(f"**Confidence:** {confidence_level}")
                         
                         # Radar chart for score components
                         categories = ['Financial Health', 'Growth Potential', 
                                       'Analyst Sentiment', 'Momentum', 'Risk Level']
-                        values = [score.financial_health_score, score.growth_potential_score,
-                                  score.analyst_sentiment_score, score.momentum_score, score.risk_score]
+                        
+                        # Use the get_value helper function for all scores
+                        values = [
+                            get_value(score, "financial_health_score", 0),
+                            get_value(score, "growth_potential_score", 0),
+                            get_value(score, "analyst_sentiment_score", 0),
+                            get_value(score, "momentum_score", 0),
+                            get_value(score, "risk_score", 0)
+                        ]
                         
                         # Close the loop for the radar chart
                         categories = categories + [categories[0]]
@@ -208,8 +254,19 @@ def create_streamlit_app():
                         
                         # Display reasoning
                         st.subheader("Score Reasoning")
-                        for category, reasoning in score.reasoning.items():
-                            st.write(f"**{category}:** {reasoning}")
+                        reasoning = get_value(score, "reasoning", {})
+                        
+                        # Handle reasoning depending on whether it's a dict or an object
+                        if isinstance(reasoning, dict):
+                            for category, reason in reasoning.items():
+                                st.write(f"**{category}:** {reason}")
+                        else:
+                            # Try accessing as attributes
+                            for category in ["financial_health_score", "growth_potential_score", 
+                                           "analyst_sentiment_score", "momentum_score", "risk_score", "overall_score"]:
+                                reason = get_value(reasoning, category, None)
+                                if reason:
+                                    st.write(f"**{category}:** {reason}")
                     
                     with col2:
                         # Detailed recommendation
@@ -219,10 +276,10 @@ def create_streamlit_app():
                         # Show sources
                         st.subheader("Information Sources")
                         extraction_results = result["extraction_results"]
-                        for i, insight in enumerate(extraction_results["extracted_insights"]):
-                            with st.expander(f"Source {i+1}: {insight['url']}"):
+                        for i, insight in enumerate(extraction_results.get("extracted_insights", [])):
+                            with st.expander(f"Source {i+1}: {insight.get('url', 'N/A')}"):
                                 st.write("**Summary:**")
-                                st.write(insight["summary"])
+                                st.write(insight.get("summary", "No summary available"))
         
         else:
             st.info("Analysis results will appear here after processing.")
@@ -239,15 +296,15 @@ def create_streamlit_app():
                 
                 scores_data.append({
                     "Ticker": ticker,
-                    "Company": result["recommendation_results"]["company_name"],
-                    "Overall Score": score.overall_score,
-                    "Financial Health": score.financial_health_score,
-                    "Growth Potential": score.growth_potential_score,
-                    "Analyst Sentiment": score.analyst_sentiment_score,
-                    "Momentum": score.momentum_score,
-                    "Risk Level": score.risk_score,
-                    "Recommendation": score.investment_recommendation,
-                    "Confidence": score.confidence_level
+                    "Company": result["recommendation_results"].get("company_name", "Unknown"),
+                    "Overall Score": get_value(score, "overall_score", 0),
+                    "Financial Health": get_value(score, "financial_health_score", 0),
+                    "Growth Potential": get_value(score, "growth_potential_score", 0),
+                    "Analyst Sentiment": get_value(score, "analyst_sentiment_score", 0),
+                    "Momentum": get_value(score, "momentum_score", 0),
+                    "Risk Level": get_value(score, "risk_score", 0),
+                    "Recommendation": get_value(score, "investment_recommendation", "N/A"),
+                    "Confidence": get_value(score, "confidence_level", "N/A")
                 })
             
             scores_df = pd.DataFrame(scores_data)
