@@ -1,7 +1,7 @@
-steps:
-  options:
+options:
   logging: CLOUD_LOGGING_ONLY
   
+steps:
   # Build the backend image
   - name: 'gcr.io/cloud-builders/docker'
     args: ['build', '-t', 'asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/backend:$COMMIT_SHA', '-f', 'backend/Dockerfile', '.']
