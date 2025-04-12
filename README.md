@@ -12,6 +12,13 @@ Stock Sage is an intelligent agent-based system that provides short-term stock i
 - **Clear Investment Recommendations**: Provides actionable investment advice with supporting evidence
 - **Interactive Web UI**: User-friendly Streamlit interface for analysis and visualization
 
+## Streamlit snapshots
+![](images/streamlit_img_1.jpeg)
+![](images/streamlit_img_2.jpeg)
+![](images/streamlit_img_3.jpeg)
+![](images/streamlit_img_4.jpeg)
+![](images/streamlit_img_5.jpeg)
+
 ## 🏗️ Architecture Overview
 
 The system is built on a modular agent architecture, leveraging LangChain and LangGraph for orchestration:
