@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: asia-south1-docker.pkg.dev/stock-analysis-agent-456018/stock-analysis-agent/backend:v1
+        image: asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/backend:v1
         env:
         - name: OPENAI_API_KEY
           valueFrom:

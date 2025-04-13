@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: asia-south1-docker.pkg.dev/stock-analysis-agent-456018/stock-analysis-agent/frontend:v1
+        image: asia-south1-docker.pkg.dev/$PROJECT_ID/stock-analysis-agent/frontend:v1
         env:
         - name: BACKEND_API_URL
           value: "http://stock-sage-backend:8080"
